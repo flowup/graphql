@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 
@@ -33,19 +34,30 @@ func NewClient(url string, httpClient *http.Client) *Client {
 // Query executes a single GraphQL query request,
 // with a query derived from q, populating the response into it.
 // q should be a pointer to struct that corresponds to the GraphQL schema.
-func (c *Client) Query(ctx context.Context, q interface{}, variables map[string]interface{}) error {
-	return c.do(ctx, queryOperation, q, variables)
+func (c *Client) Query(ctx context.Context, q interface{}, variables map[string]interface{}, token string) error {
+	return c.do(ctx, queryOperation, q, variables, token)
 }
 
 // Mutate executes a single GraphQL mutation request,
 // with a mutation derived from m, populating the response into it.
 // m should be a pointer to struct that corresponds to the GraphQL schema.
-func (c *Client) Mutate(ctx context.Context, m interface{}, variables map[string]interface{}) error {
-	return c.do(ctx, mutationOperation, m, variables)
+func (c *Client) Mutate(ctx context.Context, m interface{}, variables map[string]interface{}, token string) error {
+	return c.do(ctx, mutationOperation, m, variables, token)
+}
+
+// Post issues a POST request via the Do function.
+func (c *Client) postWithToken(ctx context.Context, client *http.Client, url string, bodyType string, body io.Reader, token string) (*http.Response, error) {
+	req, err := http.NewRequest("POST", url, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", bodyType)
+	req.Header.Set("Authorization", token)
+	return ctxhttp.Do(ctx, client, req)
 }
 
 // do executes a single GraphQL operation.
-func (c *Client) do(ctx context.Context, op operationType, v interface{}, variables map[string]interface{}) error {
+func (c *Client) do(ctx context.Context, op operationType, v interface{}, variables map[string]interface{}, token string) error {
 	var query string
 	switch op {
 	case queryOperation:
@@ -65,7 +77,7 @@ func (c *Client) do(ctx context.Context, op operationType, v interface{}, variab
 	if err != nil {
 		return err
 	}
-	resp, err := ctxhttp.Post(ctx, c.httpClient, c.url, "application/json", &buf)
+	resp, err := c.postWithToken(ctx, c.httpClient, c.url, "application/json", &buf, token)
 	if err != nil {
 		return err
 	}
