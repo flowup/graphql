@@ -31,6 +31,15 @@ func NewClient(url string, httpClient *http.Client) *Client {
 	}
 }
 
+type GQLHttpError struct {
+	StatusCode int
+	Body       []byte
+}
+
+func (e *GQLHttpError) Error() string {
+	return fmt.Sprintf("%q", e.Body)
+}
+
 // Query executes a single GraphQL query request,
 // with a query derived from q, populating the response into it.
 // q should be a pointer to struct that corresponds to the GraphQL schema.
@@ -84,7 +93,10 @@ func (c *Client) do(ctx context.Context, op operationType, v interface{}, variab
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		body, _ := ioutil.ReadAll(resp.Body)
-		return fmt.Errorf("non-200 OK status code: %v body: %q", resp.Status, body)
+		return &GQLHttpError{
+			Body:       body,
+			StatusCode: resp.StatusCode,
+		}
 	}
 	var out struct {
 		Data   *json.RawMessage
