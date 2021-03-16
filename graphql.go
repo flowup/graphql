@@ -91,12 +91,8 @@ func (c *Client) do(ctx context.Context, op operationType, v interface{}, variab
 		return err
 	}
 	defer resp.Body.Close()
-	fmt.Printf("Hello before error", resp.StatusCode)
 	if resp.StatusCode != http.StatusOK {
 		body, _ := ioutil.ReadAll(resp.Body)
-		var tmp interface{}
-		json.Unmarshal(body, &tmp)
-		fmt.Printf("%+v\n", tmp)
 		return &GQLHttpError{
 			Body:       body,
 			StatusCode: resp.StatusCode,
