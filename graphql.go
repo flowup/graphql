@@ -91,6 +91,7 @@ func (c *Client) do(ctx context.Context, op operationType, v interface{}, variab
 		return err
 	}
 	defer resp.Body.Close()
+	fmt.Printf("Hello before error", resp.StatusCode)
 	if resp.StatusCode != http.StatusOK {
 		body, _ := ioutil.ReadAll(resp.Body)
 		return &GQLHttpError{
